@@ -59,7 +59,9 @@ namespace SeismicWeb5.Controllers
         private async Task<List<DataModel>> FetchDataFromFirebaseAsync()
         {
             var dataSnapshot = await firebaseClient.Child("User001").OnceAsync<DataModel>();
+            return dataSnapshot.Select(dataSnap => dataSnap.Object).ToList();
 
+            /*
             var data = new List<DataModel>();
 
             foreach (var dataSnap in dataSnapshot)
@@ -72,7 +74,7 @@ namespace SeismicWeb5.Controllers
                 data.Add(new DataModel { Timestamp = timestamp, gyroX = x, gyroY = y, gyroZ = z });
             }
 
-            return data;
+            return data;*/
         }
 
 
