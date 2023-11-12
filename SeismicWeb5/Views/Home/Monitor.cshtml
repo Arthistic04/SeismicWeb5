@@ -5,19 +5,18 @@
 @model List<SeismicWeb5.Controllers.DataModel>
 
 <head>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <h1>@ViewData["Title"]</h1>
+<br />
 
 <div>
-    <canvas id="seismographChart" width="800" height="400"></canvas>
+    <canvas id="seismographChart" width="1200" height="600"></canvas>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<!-- JavaScript code -->
 <script>
-    // Get the canvas element and initialize the Chart
     var ctx = document.getElementById('seismographChart').getContext('2d');
     var seismographChart = new Chart(ctx, {
         type: 'line',
@@ -58,34 +57,50 @@
         }
     });
 
-    // Fetch data from Firebase periodically and update the chart
+
     async function updateChart() {
         try {
-            var response = await fetch('/Home/GetDataFromFirebase');
-            var responseText = await response.text();
-            console.log('Raw Response:', responseText);
-
-            var data = JSON.parse(responseText);
-
-            // Add data points to the chart
-            data.forEach(item => {
-                seismographChart.data.labels.push(''); // You can set meaningful labels if needed
-                seismographChart.data.datasets[0].data.push(item.gyroX);
-                seismographChart.data.datasets[1].data.push(item.gyroY);
-                seismographChart.data.datasets[2].data.push(item.gyroZ);
+            var response = await fetch('/Home/GetDataFromFirebase', {
+                headers: {
+                    'Accept': 'application/json'
+                }
             });
 
-            // Update the chart
-            seismographChart.update();
+            if (response.ok) {
+                var data = await response.json();
+                if ("gyroX" in data && "gyroY" in data && "gyroZ" in data) {
+                    var timestamp = new Date().getTime();
+                    seismographChart.data.labels.push(timestamp);
+                    
+                    //var formattedTime = timestamp.toLocaleTimeString();
+                    //seismographChart.data.labels.push(formattedTime);
+                    //seismographChart.data.labels.push('');
+                    seismographChart.data.datasets[0].data.push(data.gyroX);
+                    seismographChart.data.datasets[1].data.push(data.gyroY);
+                    seismographChart.data.datasets[2].data.push(data.gyroZ);
 
-            // Call the function again after a delay (e.g., 1 second)
-            setTimeout(updateChart, 1000);
+                    var maxDataPoints = 30;
+                    if (seismographChart.data.labels.length > maxDataPoints) {
+                        seismographChart.data.labels = seismographChart.data.labels.slice(-maxDataPoints);
+                        seismographChart.data.datasets[0].data = seismographChart.data.datasets[0].data.slice(-maxDataPoints);
+                        seismographChart.data.datasets[1].data = seismographChart.data.datasets[1].data.slice(-maxDataPoints);
+                        seismographChart.data.datasets[2].data = seismographChart.data.datasets[2].data.slice(-maxDataPoints);
+                    }
+
+                    seismographChart.update({
+                        preservation: true
+                    });
+                } else {
+                    console.error('Error: Unexpected data format from Firebase:', data);
+                }
+            } else {
+                console.error('Error fetching data from Firebase. Status:', response.status);
+            }
+            setTimeout(updateChart, 100);
         } catch (error) {
             console.error('Error fetching data:', error);
         }
     }
-
-    // Start updating the chart
     updateChart();
 </script>
 </body>

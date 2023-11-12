@@ -12,22 +12,26 @@ using System.Threading.Tasks;
 using FirebaseAdmin;
 using Firebase.Database;
 using Google.Apis.Auth.OAuth2;
+using System.IO;
+
+using Google.Cloud.Firestore;
 
 namespace SeismicWeb5
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        private readonly IWebHostEnvironment env;
+        public Startup(IConfiguration configuration, IWebHostEnvironment env)
         {
             Configuration = configuration;
+            this.env = env;
         }
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            var firebaseCredentialsPath = "C:\\Users\\Arthur\\source\\repos\\SeismicWeb5\\SeismicWeb5\\wwwroot\\lib\\firebasekey.json";
+            var firebaseCredentialsPath = Path.Combine(env.WebRootPath, "lib", "firebasekey.json");
             FirebaseApp.Create(new AppOptions
             {
                 Credential = GoogleCredential.FromFile(firebaseCredentialsPath),
@@ -35,15 +39,13 @@ namespace SeismicWeb5
 
             services.AddScoped<FirebaseClient>(_ =>
             {
-                var firebaseUrl = "https://seismoweb-9e2a6-default-rtdb.asia-southeast1.firebasedatabase.app"; // Replace with your Firebase Realtime Database URL
+                var firebaseUrl = "https://seismoweb-9e2a6-default-rtdb.asia-southeast1.firebasedatabase.app";
                 return new FirebaseClient(firebaseUrl);
             });
 
             services.AddMvc();
             services.AddControllersWithViews();
         }
-
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
@@ -53,7 +55,6 @@ namespace SeismicWeb5
             else
             {
                 app.UseExceptionHandler("/Home/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
             app.UseHttpsRedirection();

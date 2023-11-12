@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Firebase.Database;
 using Firebase.Database.Query;
 using FirebaseAdmin.Auth;
+using Newtonsoft.Json;
 
 
 namespace SeismicWeb5.Controllers
@@ -45,36 +46,39 @@ namespace SeismicWeb5.Controllers
         {
             try
             {
+                Console.WriteLine("Fetching data from Firebase...");
                 var data = await FetchDataFromFirebaseAsync();
-                return Json(data);
+                if (data != null)
+                {
+                    Console.WriteLine("Data fetched successfully.");
+                    return Json(data);
+                }
+                else
+                {
+                    Console.Error.WriteLine("Error fetching data from Firebase.");
+                    return StatusCode(500, "Internal Server Error");
+                }
             }
             catch (Exception ex)
             {
-                // Log the exception
-                Console.Error.WriteLine($"Error fetching data from Firebase: {ex.Message}");
+                Console.Error.WriteLine($"HomeController Error fetching data from Firebase: {ex.Message}");
+                Console.Error.WriteLine($"StackTrace: {ex.StackTrace}");
                 return StatusCode(500, "Internal Server Error");
             }
         }
 
-        private async Task<List<DataModel>> FetchDataFromFirebaseAsync()
+        private async Task<DataModel> FetchDataFromFirebaseAsync()
         {
-            var dataSnapshot = await firebaseClient.Child("User001").OnceAsync<DataModel>();
-            return dataSnapshot.Select(dataSnap => dataSnap.Object).ToList();
-
-            /*
-            var data = new List<DataModel>();
-
-            foreach (var dataSnap in dataSnapshot)
+            try
             {
-                var timestamp = dataSnap.Object.Timestamp;
-                var x = dataSnap.Object.gyroX;
-                var y = dataSnap.Object.gyroY;
-                var z = dataSnap.Object.gyroZ;
-
-                data.Add(new DataModel { Timestamp = timestamp, gyroX = x, gyroY = y, gyroZ = z });
+                var dataSnapshot = await firebaseClient.Child("User001").OnceSingleAsync<DataModel>();
+                return dataSnapshot;
             }
-
-            return data;*/
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error fetching data from Firebase: {ex.Message}");
+                return null;
+            }
         }
 
 
@@ -86,9 +90,22 @@ namespace SeismicWeb5.Controllers
     }
     public class DataModel
     {
-        public DateTime Timestamp { get; set; }
+        [JsonProperty("gyroX")]
         public float gyroX { get; set; }
+
+        [JsonProperty("gyroY")]
         public float gyroY { get; set; }
+
+        [JsonProperty("gyroZ")]
         public float gyroZ { get; set; }
+
+        [JsonProperty("accX")]
+        public float accX { get; set; }
+
+        [JsonProperty("accY")]
+        public float accY { get; set; }
+
+        [JsonProperty("accZ")]
+        public float accZ { get; set; }
     }
 }
